@@ -80,12 +80,12 @@ jobs:
 
       - name: Swap Traffic
         run: |
-          curl -X POST http:<<>>/switch-green
+          curl -X POST githubALB-1596174961.us-east-1.elb.amazonaws.com/switch-green
 
       - name: Rollbcak to blue
         if: failure()
         run: |
-          curl -X POST <<>>/switch-blue
+          curl -X POST githubALB-1596174961.us-east-1.elb.amazonaws.com/switch-blue
           
 
           
