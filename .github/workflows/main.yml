@@ -1,0 +1,95 @@
+name: CI/CD with Changelog, Versioning, and Blue-Green Deployment
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  generate-changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set Up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Install Changelog Generator
+        run: npm install -g conventional-changelog-cli
+
+      - name: Generate Changelog
+        run: |
+          conventional-changelog -p angular -i CHANGELOG.md -s -r 0
+      - name: Commit and Push Changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "Update changelog"
+          git push origin main
+
+  bump-version:
+    name: Bump Version
+    needs: generate-changelog
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Bump Version
+        uses: anothrNick/github-tag-action@v1.41.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_prefix: "v" # Prefix for semantic versioning
+          release_branches: main
+          prerelease_suffix: beta
+
+  blue-green-deployment:
+    name: Blue-Green Deployment
+    needs: bump-version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Authenticate with AWS
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: aws sts get-caller-identity
+
+      - name: Deploy to Blue Environment
+        run: |
+          aws deploy create-deployment \
+            --application-name MyApp \
+            --deployment-group-name BlueGroup \
+            --s3-location bucket=my-bucket,key=my-app.zip,bundleType=zip
+
+      - name: Test Blue Environment
+        run: |
+          curl -f https://blue.my-app.com/health || exit 1
+
+      - name: Switch Traffic to Blue
+        run: |
+          aws elbv2 modify-listener \
+            --listener-arn arn:aws:elasticloadbalancing:us-east-1:390844740859:listener/app/githubALB/0a72149c461ffc6f/e51a901ca70f3978 \
+            --default-actions Type=forward,TargetGroupArn=arn:aws:elasticloadbalancing:us-east-1:390844740859:targetgroup/BlueTargetGroup/b8afd2e0dd57ff34
+
+      - name: Clean Up Green Environment
+        run: |
+          aws ec2 terminate-instances --instance-ids $(aws ec2 describe-instances \
+            --filters Name=tag:Environment,Values=Green \
+            --query 'Reservations[*].Instances[*].InstanceId' \
+            --output text)
