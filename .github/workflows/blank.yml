@@ -35,7 +35,7 @@ jobs:
         run: |
           standard-version
         env:
-          GITHUB_TOKEN: ${{ srecrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: commit and push versioning  changes
         run: |
           git push --follow-tags origin main
