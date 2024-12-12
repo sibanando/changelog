@@ -22,6 +22,21 @@ jobs:
         with:
           node-version: 16
 
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Application
+        run: npm run build
+
+      - name: Package Application
+        run: zip -r app.zip ./dist
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: app
+          path: app.zip
+
       - name: Install Changelog Generator
         run: npm install -g conventional-changelog-cli
         
