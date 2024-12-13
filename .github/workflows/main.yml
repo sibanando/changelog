@@ -29,7 +29,7 @@ jobs:
         run: npm run build
 
       - name: Package Application
-        run: zip -r app.zip ./dist
+        run: zip -r app.zip ./build
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
