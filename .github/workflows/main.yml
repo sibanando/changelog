@@ -24,10 +24,10 @@ jobs:
 
       - name: Install Dependencies
         run: npm install
-      - name: build
-        run: |
-         npm init
-         npm run build
+
+      - name: Build Application
+        run: npm run build
+
       - name: Package Application
         run: zip -r app.zip ./dist
 
