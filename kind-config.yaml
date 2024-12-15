@@ -1,0 +1,13 @@
+# kind-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+metadata:
+  name: my-kind-cluster
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.24.0  # Specify the Kubernetes version (adjust as needed)
+    extraPortMappings:
+      - containerPort: 80  # Expose port 80
+        hostPort: 80
+      - containerPort: 443  # Expose port 443
+        hostPort: 443
