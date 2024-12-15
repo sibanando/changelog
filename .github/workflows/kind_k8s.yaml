@@ -1,0 +1,41 @@
+name: Kubernetes with Kind
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  setup-kind:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # Step 1: Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Step 2: Install dependencies (Docker and Kind)
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y curl
+        curl -Lo kind https://github.com/kubernetes-sigs/kind/releases/download/v0.18.0/kind-linux-amd64
+        sudo chmod +x kind
+        sudo mv kind /usr/local/bin/
+
+    # Step 3: Create a Kubernetes cluster with Kind
+    - name: Create Kind Cluster
+      run: |
+        kind create cluster --config kind-config.yaml
+
+    # Step 4: Use kubectl to interact with the cluster
+    - name: Deploy to Kind Cluster
+      run: |
+        kubectl cluster-info
+        kubectl apply -f deployment.yaml
+
+    # Step 5: Test Kubernetes cluster
+    - name: Test Cluster
+      run: |
+        kubectl get nodes
+        kubectl get pods
